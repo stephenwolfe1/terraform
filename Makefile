@@ -1,5 +1,5 @@
 IMAGE        := stephenwolfe/terraformer
-TAG          := local
+TAG          := latest
 STATE_BUCKET := spw006-terraform.tfstate
 TYPE         ?= services
 NAME         ?= root-setup
@@ -10,16 +10,17 @@ terraformer-svc := docker run \
 	--rm \
 	-v $(PWD)/:/terraform \
 	-v $(HOME)/.aws:/root/.aws \
+	-v $(HOME)/.kube:/root/.kube \
 	-v $(HOME)/.vault-token:/root/.vault-token \
 	-e TF_DATA_DIR=/terraform/.terraform \
 	-e VAULT_TOKEN \
 	-e VAULT_ADDR \
 	-e DIRECTORY=/terraform/${TYPE}/${NAME} \
-	${IMAGE}:${TAG} terraformer
+	${IMAGE}:${TAG}
 
 .PHONY: pull
 pull: ## pull terraformer image
-	@echo docker pull ${IMAGE}:${TAG}
+	@docker pull ${IMAGE}:${TAG}
 
 .PHONY: init
 init: pull ## run terraformer init
