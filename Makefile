@@ -53,6 +53,10 @@ plan: pull init ## run terraformer plan
 apply: pull init ## run terraformer apply
 	@${terraformer-svc} apply
 
+.PHONY: destroy
+destroy: pull init ## run terraformer destroy
+	@${terraformer-svc} destroy
+
 .PHONY: shell
 shell: pull ## run terraformer shell
 	@${terraformer-shell}
@@ -82,3 +86,10 @@ clean: save-root ## clean up terraform directories
 	@find . -name .terraform | xargs rm -rf &&\
 	find . -name .terraform.tfstate | xargs rm -rf &&\
 	find . -name errored.tfstate | xargs rm
+
+.PHONY: help
+help: ## show this usage
+	@echo "\033[36mTerraform repo:\033[0m\n\n\tUsage: NAME=\$${services} make [target]\n"; \
+	grep -E '^[a-zA-Z0-9._-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

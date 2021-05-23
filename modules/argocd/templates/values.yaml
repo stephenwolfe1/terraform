@@ -1,0 +1,192 @@
+## ArgoCD configuration
+## Ref: https://github.com/argoproj/argo-cd
+##
+global:
+  image:
+    repository: stephenwolfe/argocd
+    tag: ${global_image_tag}
+    imagePullPolicy: Always
+
+## Server
+server:
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 50
+    targetMemoryUtilizationPercentage: 50
+
+  extraArgs:
+    - --insecure
+
+  ingress:
+    enabled: true
+    hosts:
+      - argocd.wolfe.int
+
+  ## ArgoCD config
+  ## reference https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/argocd-cm.yaml
+  config:
+    # Argo CD's externally facing base URL (optional). Required when configuring SSO
+    statusbadge.enabled: "true"
+    url: http://${hostname}
+
+    repository.credentials: |
+      - url: https://github.com/stephenpwolfe
+        passwordSecret:
+          name: argocd-secret
+          key: github.token
+        usernameSecret:
+          name: argocd-secret
+          key: github.username
+      - url: https://raw.githubusercontent.com/stephenpwolfe
+        passwordSecret:
+          name: argocd-secret
+          key: github.token
+        usernameSecret:
+          name: argocd-secret
+          key: github.username
+
+    dex.config: |
+      connectors:
+      # GitHub example
+      - type: github
+        id: github
+        name: GitHub
+        config:
+          clientID: ${github_oauth_clientID}
+          clientSecret: ${github_oauth_clientSecret}
+          orgs:
+          - name: stephenpwolfe
+%{ if enable_argo_sso ~}
+      staticClients:
+      - id: ${cluster_name}-argo-id
+        name: Argo Workflow
+        redirectURIs:
+          - https://${replace(hostname, "argocd", "argo")}/oauth2/callback
+        secretEnv: ARGO_WORKFLOWS_SSO_CLIENT_SECRET
+%{ endif }
+
+    configManagementPlugins: |
+      - name: kustomized-helm
+        init:
+          command: ["/bin/sh", "-c"]
+          args: ["helm dependency build || true"]
+        generate:
+          command: ["/bin/sh", "-c"]
+          args: ["echo \"$HELM_VALUES\" | helm template . --name-template $ARGOCD_APP_NAME --namespace $ARGOCD_APP_NAMESPACE $HELM_ARGS -f - --include-crds > all.yaml && kustomize build"]
+
+  ## ArgoCD rbac config
+  ## reference https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/rbac.md
+  rbacConfig:
+    policy.default: role:readonly
+    policy.csv: |
+    %{ for group in argocd_admin_groups ~}
+    g, stephenpwolfe:${group}, role:admin
+    %{ endfor ~}
+
+    %{ for user in argocd_admin_users ~}
+    g, stephenpwolfe:${user}, role:admin
+    %{ endfor ~}
+
+  ## Not well tested and not well supported on release v1.0.0.
+  ## Applications
+  ## reference: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/
+  additionalApplications:
+  - name: cluster-bootstrap
+    namespace: argocd
+    additionalLabels: {}
+    additionalAnnotations: {}
+    project: bootstrap
+    source:
+      repoURL: ${cluster_bootstrap_repo}
+      targetRevision: ${target_revision}
+      path: ${cluster_name}/app-of-apps
+      helm:
+        parameters:
+        - name: cluster_name
+          value: ${cluster_name}
+        - name: source.targetRevision
+          value: ${target_revision}
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: false
+        selfHeal: true
+
+  ## Projects
+  ## reference: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/
+  additionalProjects:
+  - name: bootstrap
+    namespace: argocd
+    additionalLabels: {}
+    additionalAnnotations: {}
+    description: Bootstrap project
+    sourceRepos:
+    - '*'
+    destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+    namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+    - group: ''
+      kind: NetworkPolicy
+    orphanedResources: {}
+    roles: []
+  - name: main
+    namespace: argocd
+    additionalLabels: {}
+    additionalAnnotations: {}
+    description: Applications project
+    sourceRepos:
+    - '*'
+    destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+    clusterResourceWhitelist: []
+    namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+    - group: ''
+      kind: NetworkPolicy
+    orphanedResources: {}
+    roles: []
+
+## Controller
+controller:
+  enableStatefulSet: true
+repoServer:
+  autoscaling:
+    enabled: true
+    minReplicas: ${repo_server_min_replicas}
+    maxReplicas: ${repo_server_max_replicas}
+## Argo Configs
+configs:
+  secret:
+    extra:
+      github.username: ${github_username}
+      github.token: ${github_token}
+
+dex:
+  image:
+    repository: stephenwolfe/dex
+    tag: ${dex_image_tag}
+    imagePullPolicy: Always
+%{ if enable_argo_sso }
+  env:
+   - name: ARGO_WORKFLOWS_SSO_CLIENT_SECRET
+     valueFrom:
+       secretKeyRef:
+         name: argo-workflows-sso
+         key: client-secret
+%{ endif }
