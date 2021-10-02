@@ -5,10 +5,11 @@
 
 terraform {
   backend "s3" {
-    bucket  = "spw006-terraform.tfstate"
-    region  = "us-west-2"
-    encrypt = true
-    key     = "services/argocd/terraform.tfstate"
+    bucket         = "spw006-terraform.tfstate"
+    dynamodb_table = "terraform.tfstate.lock"
+    encrypt        = true
+    key            = "services/argocd/terraform.tfstate"
+    region         = "us-west-2"
   }
 }
 
