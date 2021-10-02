@@ -1,6 +1,8 @@
 IMAGE        := stephenwolfe/terraformer
 TAG          := latest
 STATE_BUCKET := spw006-terraform.tfstate
+LOCK_TABLE   := terraform.tfstate.lock
+REGION       := us-west-2
 TYPE         ?= services
 NAME         ?= root-setup
 VAULT_ADDR   ?= http://vault.wolfe.int
@@ -64,6 +66,17 @@ shell: pull ## run terraformer shell
 .PHONY: docs
 docs: ## run terraform-docs
 	@terraform-docs --sort-by-required markdown table ${TYPE}/${NAME} > ${TYPE}/${NAME}/README.md
+
+
+%: ## Do nothing on missing target
+	@:
+
+.PHONY:
+create: ## create a new service directory
+	@STATE_BUCKET=${STATE_BUCKET} \
+	  LOCK_TABLE=${LOCK_TABLE} \
+		REGION=${REGION} \
+	  scripts/create_service.sh $(filter-out $@,$(MAKECMDGOALS))
 
 # File management
 PROFILE   ?= root
