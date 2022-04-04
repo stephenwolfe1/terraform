@@ -5,7 +5,7 @@ LOCK_TABLE   := terraform.tfstate.lock
 REGION       := us-west-2
 TYPE         ?= services
 NAME         ?= root-setup
-VAULT_ADDR   ?= http://vault.wolfe.int
+VAULT_ADDR   ?= https://vault.swolfe.io
 
 # Terraform management
 terraformer-svc := docker run \
@@ -42,7 +42,7 @@ terraformer-shell := docker run \
 .PHONY: pull
 pull: ## pull terraformer image
 	@touch $(HOME)/.vault-token
-	@docker pull ${IMAGE}:${TAG}
+	@echo docker pull ${IMAGE}:${TAG}
 
 .PHONY: init
 init: pull ## run terraformer init

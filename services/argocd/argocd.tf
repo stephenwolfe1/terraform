@@ -3,7 +3,7 @@ module "argocd" {
   argocd_version            = "3.5.0"
   argo_global_image_tag     = "v2.0.1-arm"
   cluster_name              = "default"
-  argocd_hostname           = "argocd.wolfe.int"
+  argocd_hostname           = "argocd.swolfe.io"
   argocd_admin_groups       = ["admins"]
   cluster_bootstrap_repo    = "https://github.com/stephenwolfe1/argocd-applications.git"
   target_revision           = "setup"

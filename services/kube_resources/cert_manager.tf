@@ -5,14 +5,14 @@ data "vault_generic_secret" "cloudflare" {
 
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
-    name        = "cert-manager"
+    name = "cert-manager"
   }
 }
 
 resource "kubernetes_secret" "cert_manager" {
   metadata {
-    name        = "cloudflare-api-token-secret"
-    namespace   = "cert-manager"
+    name      = "cloudflare-api-token-secret"
+    namespace = "cert-manager"
   }
 
   data = {
