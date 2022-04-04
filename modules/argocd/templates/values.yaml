@@ -21,15 +21,21 @@ server:
 
   ingress:
     enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-production
     hosts:
-      - argocd.wolfe.int
+      - ${hostname}
+    tls:
+      - secretName: ${hostname}-tls
+        hosts:
+          - ${hostname}
 
   ## ArgoCD config
   ## reference https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/argocd-cm.yaml
   config:
     # Argo CD's externally facing base URL (optional). Required when configuring SSO
     statusbadge.enabled: "true"
-    url: http://${hostname}
+    url: https://${hostname}
 
     repository.credentials: |
       - url: https://github.com/stephenpwolfe

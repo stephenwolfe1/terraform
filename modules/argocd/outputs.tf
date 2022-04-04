@@ -1,5 +1,5 @@
 output "argocd_info" {
-  value = "\n\n\tArgocd will be available at the URL below in ~5min once apps and DNS are setup\n\n\thttp://${var.argocd_hostname}\n"
+  value = "\n\n\tArgocd will be available at the URL below in ~5min once apps and DNS are setup\n\n\thttps://${var.argocd_hostname}\n"
 }
 
 output "argo_sso_static_client_id" {
