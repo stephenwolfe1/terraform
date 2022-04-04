@@ -85,10 +85,6 @@ server:
     g, stephenpwolfe:${group}, role:admin
     %{ endfor ~}
 
-    %{ for user in argocd_admin_users ~}
-    g, stephenpwolfe:${user}, role:admin
-    %{ endfor ~}
-
   ## Not well tested and not well supported on release v1.0.0.
   ## Applications
   ## reference: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/
@@ -101,7 +97,7 @@ server:
     source:
       repoURL: ${cluster_bootstrap_repo}
       targetRevision: ${target_revision}
-      path: ${cluster_name}/app-of-apps
+      path: bootstrap
       helm:
         parameters:
         - name: cluster_name

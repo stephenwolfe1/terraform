@@ -31,11 +31,6 @@ variable "argocd_admin_groups" {
   default     = [""]
 }
 
-variable "argocd_admin_users" {
-  description = "Github groups for Argocd UI"
-  default     = []
-}
-
 variable "enable_argo_sso" {
   description = "Optional flag to enable Argo Workflows SSO via Argocd dex auth"
   default     = false
@@ -48,7 +43,7 @@ variable "cluster_bootstrap_repo" {
 
 variable "target_revision" {
   description = "Revision to use for the cluster bootstrap repo"
-  default     = ""
+  default     = "HEAD"
 }
 
 variable "repo_server_min_replicas" {

@@ -16,6 +16,10 @@ terraformer-svc := docker run \
 	-v $(HOME)/.kube:/root/.kube \
 	-v $(HOME)/.vault-token:/root/.vault-token \
 	-e TF_DATA_DIR=/terraform/.terraform \
+	-e TF_VAR_github_username=${GITHUB_USERNAME} \
+	-e TF_VAR_github_token=${GITHUB_TOKEN} \
+	-e TF_VAR_github_oauth_clientID=${GITHUB_OAUTH_CLIENTID} \
+	-e TF_VAR_github_oauth_clientSecret=${GITHUB_OAUTH_CLIENTSECRET} \
 	-e VAULT_ADDR=${VAULT_ADDR} \
 	-e VAULT_TOKEN \
 	-e DIRECTORY=/terraform/${TYPE}/${NAME} \
@@ -37,6 +41,7 @@ terraformer-shell := docker run \
 
 .PHONY: pull
 pull: ## pull terraformer image
+	@touch $(HOME)/.vault-token
 	@docker pull ${IMAGE}:${TAG}
 
 .PHONY: init
