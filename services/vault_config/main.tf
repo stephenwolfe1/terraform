@@ -19,15 +19,3 @@ locals {
     defined_in        = "${replace(abspath(path.module), "//terraform//", "")}"
   }
 }
-
-provider "kubernetes" {
-  config_path = "~/.kube/config"
-}
-
-provider "vault" {}
-
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
-  }
-}

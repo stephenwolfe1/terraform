@@ -5,6 +5,7 @@ variable "github_username" {
 
 variable "github_token" {
   description = "Github token variable for initial bootstrap, sourced from environment"
+  sensitive   = true
   default     = ""
 }
 
@@ -15,5 +16,6 @@ variable "github_oauth_clientID" {
 
 variable "github_oauth_clientSecret" {
   description = "Github OAuth Client Secret variable for initial bootstrap, sourced from environment"
+  sensitive   = true
   default     = ""
 }

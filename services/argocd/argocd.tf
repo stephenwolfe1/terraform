@@ -1,7 +1,7 @@
 module "argocd" {
   source                    = "/terraform/modules/argocd"
-  argocd_version            = "3.5.0"
-  argo_global_image_tag     = "v2.0.1-arm"
+  argocd_version            = "5.46.4"
+  argo_global_image_tag     = "v2.8.4"
   cluster_name              = "default"
   argocd_hostname           = "argocd.swolfe.io"
   argocd_admin_groups       = ["admins"]

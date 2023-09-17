@@ -12,22 +12,3 @@ terraform {
     region         = "us-west-2"
   }
 }
-
-locals {
-  standard_tags = {
-    terraform_managed = "true"
-    defined_in        = "${replace(abspath(path.module), "//terraform//", "")}"
-  }
-}
-
-provider "kubernetes" {
-  config_path = "~/.kube/config"
-}
-
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
-  }
-}
-
-provider "vault" {}

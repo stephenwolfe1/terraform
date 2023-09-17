@@ -20,6 +20,7 @@ terraformer-svc := docker run \
 	-e TF_VAR_github_token=${GITHUB_TOKEN} \
 	-e TF_VAR_github_oauth_clientID=${GITHUB_OAUTH_CLIENTID} \
 	-e TF_VAR_github_oauth_clientSecret=${GITHUB_OAUTH_CLIENTSECRET} \
+	-e TF_VAR_cloudflare_api_token=${CLOUDFLARE_API_TOKEN} \
 	-e VAULT_ADDR=${VAULT_ADDR} \
 	-e VAULT_TOKEN \
 	-e DIRECTORY=/terraform/${TYPE}/${NAME} \

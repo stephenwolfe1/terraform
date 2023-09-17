@@ -12,6 +12,11 @@ variable "argocd_version" {
   default     = "3.2.4"
 }
 
+variable "argocd_config_version" {
+  description = "Argocd Config Helm version"
+  default     = "1.4.1"
+}
+
 variable "argo_global_image_tag" {
   description = "Argocd global image tag"
   default     = "v2.0.1-arm"

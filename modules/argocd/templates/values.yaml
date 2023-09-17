@@ -1,58 +1,17 @@
-## ArgoCD configuration
-## Ref: https://github.com/argoproj/argo-cd
-##
 global:
-  image:
-    repository: stephenwolfe/argocd
-    tag: ${global_image_tag}
-    imagePullPolicy: Always
+  logging:
+    format: json
+    level: warn
 
-## Server
-server:
-  autoscaling:
-    enabled: true
-    minReplicas: 1
-    maxReplicas: 5
-    targetCPUUtilizationPercentage: 50
-    targetMemoryUtilizationPercentage: 50
-
-  extraArgs:
-    - --insecure
-
-  ingress:
-    enabled: true
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-production
-    hosts:
-      - ${hostname}
-    tls:
-      - secretName: ${hostname}-tls
-        hosts:
-          - ${hostname}
-
-  ## ArgoCD config
-  ## reference https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/argocd-cm.yaml
-  config:
-    # Argo CD's externally facing base URL (optional). Required when configuring SSO
+## Argo Configs
+configs:
+  cm:
+    url: "https://${hostname}"
     statusbadge.enabled: "true"
-    url: https://${hostname}
-
-    repository.credentials: |
-      - url: https://github.com/stephenpwolfe
-        passwordSecret:
-          name: argocd-secret
-          key: github.token
-        usernameSecret:
-          name: argocd-secret
-          key: github.username
-      - url: https://raw.githubusercontent.com/stephenpwolfe
-        passwordSecret:
-          name: argocd-secret
-          key: github.token
-        usernameSecret:
-          name: argocd-secret
-          key: github.username
-
+    exec.enabled: "true"
+    exec.shells: "bash,sh"
+    users.session.duration: "168h"
+    
     dex.config: |
       connectors:
       # GitHub example
@@ -64,133 +23,100 @@ server:
           clientSecret: ${github_oauth_clientSecret}
           orgs:
           - name: stephenpwolfe
-%{ if enable_argo_sso ~}
-      staticClients:
-      - id: ${cluster_name}-argo-id
-        name: Argo Workflow
-        redirectURIs:
-          - https://${replace(hostname, "argocd", "argo")}/oauth2/callback
-        secretEnv: ARGO_WORKFLOWS_SSO_CLIENT_SECRET
-%{ endif }
 
-    configManagementPlugins: |
-      - name: kustomized-helm
-        init:
-          command: ["/bin/sh", "-c"]
-          args: ["helm dependency build || true"]
-        generate:
-          command: ["/bin/sh", "-c"]
-          args: ["echo \"$HELM_VALUES\" | helm template . --name-template $ARGOCD_APP_NAME --namespace $ARGOCD_APP_NAMESPACE $HELM_ARGS -f - --include-crds > all.yaml && kustomize build"]
+    resource.customizations.ignoreDifferences.admissionregistration.k8s.io_MutatingWebhookConfiguration: |
+      jsonPointers:
+      - /webhooks/0/clientConfig/caBundle
+      jqPathExpressions:
+      - .webhooks[0].clientConfig.caBundle
+      managedFieldsManagers:
+      - kube-controller-manager
+    
+    resource.customizations.ignoreDifferences.all: |
+      managedFieldsManagers:
+      - kube-controller-manager
+      jsonPointers:
+      - /spec/replicas
+    
+    resource.customizations.health.certmanager.k8s.io-Certificate: |
+      hs = {}
+      if obj.status ~= nil then
+        if obj.status.conditions ~= nil then
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" and condition.status == "False" then
+              hs.status = "Degraded"
+              hs.message = condition.message
+              return hs
+            end
+            if condition.type == "Ready" and condition.status == "True" then
+              hs.status = "Healthy"
+              hs.message = condition.message
+              return hs
+            end
+          end
+        end
+      end
+      hs.status = "Progressing"
+      hs.message = "Waiting for certificate"
+      return hs
+    
+    resource.customizations.health.cert-manager.io_Certificate: |
+      hs = {}
+      if obj.status ~= nil then
+        if obj.status.conditions ~= nil then
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" and condition.status == "False" then
+              hs.status = "Degraded"
+              hs.message = condition.message
+              return hs
+            end
+            if condition.type == "Ready" and condition.status == "True" then
+              hs.status = "Healthy"
+              hs.message = condition.message
+              return hs
+            end
+          end
+        end
+      end
+      hs.status = "Progressing"
+      hs.message = "Waiting for certificate"
+      return hs
 
-  ## ArgoCD rbac config
-  ## reference https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/rbac.md
-  rbacConfig:
+  params:
+    server.insecure: true
+
+  rbac:
     policy.default: role:readonly
+    #scopes: '[email,groups]'
     policy.csv: |
-    %{ for group in argocd_admin_groups ~}
-    g, stephenpwolfe:${group}, role:admin
-    %{ endfor ~}
+      %{ for group in argocd_admin_groups ~}
+      g, stephenpwolfe:${group}, role:admin
+      %{ endfor ~}
+  
+  #credentialTemplates:
+  #  https-creds:
+  #    url: https://github.com/stephenpwolfe
+  #    username: ${github_username}
+  #
+  #repositories:
+  #  stephenpwolfe:
+  #    name: "stephenpwolfe"
+  #    url: "https://github.com/stephenpwolfe"
+  #    passwordSecret:
+  #      name: argocd-secret
+  #      key: github.token
+  #    usernameSecret:
+  #      name: argocd-secret
+  #      key: github.username
 
-  ## Not well tested and not well supported on release v1.0.0.
-  ## Applications
-  ## reference: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/
-  additionalApplications:
-  - name: cluster-bootstrap
-    namespace: argocd
-    additionalLabels: {}
-    additionalAnnotations: {}
-    project: bootstrap
-    source:
-      repoURL: ${cluster_bootstrap_repo}
-      targetRevision: ${target_revision}
-      path: bootstrap
-      helm:
-        parameters:
-        - name: cluster_name
-          value: ${cluster_name}
-        - name: source.targetRevision
-          value: ${target_revision}
-    destination:
-      server: https://kubernetes.default.svc
-      namespace: argocd
-    syncPolicy:
-      automated:
-        prune: false
-        selfHeal: true
-
-  ## Projects
-  ## reference: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/
-  additionalProjects:
-  - name: bootstrap
-    namespace: argocd
-    additionalLabels: {}
-    additionalAnnotations: {}
-    description: Bootstrap project
-    sourceRepos:
-    - '*'
-    destinations:
-    - namespace: '*'
-      server: https://kubernetes.default.svc
-    clusterResourceWhitelist:
-    - group: '*'
-      kind: '*'
-    namespaceResourceBlacklist:
-    - group: ''
-      kind: ResourceQuota
-    - group: ''
-      kind: LimitRange
-    - group: ''
-      kind: NetworkPolicy
-    orphanedResources: {}
-    roles: []
-  - name: main
-    namespace: argocd
-    additionalLabels: {}
-    additionalAnnotations: {}
-    description: Applications project
-    sourceRepos:
-    - '*'
-    destinations:
-    - namespace: '*'
-      server: https://kubernetes.default.svc
-    clusterResourceWhitelist:
-    - group: '*'
-      kind: '*'
-    namespaceResourceBlacklist:
-    - group: ''
-      kind: ResourceQuota
-    - group: ''
-      kind: LimitRange
-    - group: ''
-      kind: NetworkPolicy
-    orphanedResources: {}
-    roles: []
-
-## Controller
-controller:
-  enableStatefulSet: true
-repoServer:
-  autoscaling:
+server:
+  ingress:
     enabled: true
-    minReplicas: ${repo_server_min_replicas}
-    maxReplicas: ${repo_server_max_replicas}
-## Argo Configs
-configs:
-  secret:
-    extra:
-      github.username: ${github_username}
-      github.token: ${github_token}
-
-dex:
-  image:
-    repository: stephenwolfe/dex
-    tag: ${dex_image_tag}
-    imagePullPolicy: Always
-%{ if enable_argo_sso }
-  env:
-   - name: ARGO_WORKFLOWS_SSO_CLIENT_SECRET
-     valueFrom:
-       secretKeyRef:
-         name: argo-workflows-sso
-         key: client-secret
-%{ endif }
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-production
+    hosts:
+      - ${hostname}
+    tls:
+      - secretName: ${hostname}-tls
+        hosts:
+          - ${hostname}
