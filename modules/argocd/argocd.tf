@@ -10,11 +10,13 @@ resource "helm_release" "argocd" {
   chart            = "argo-cd"
   version          = var.argocd_version
 
-  set {
-    name  = "global.image.tag"
-    value = var.argo_global_image_tag
-    type  = "string"
-  }
+  set = [
+    {
+      name  = "global.image.tag"
+      value = var.argo_global_image_tag
+      type  = "string"
+    }
+  ]
 
   values = [
     templatefile("${path.module}/templates/values.yaml",
@@ -27,10 +29,12 @@ resource "helm_release" "argocd" {
     })
   ]
 
-  set_sensitive {
-    name  = "configs.secret.argocdServerAdminPassword"
-    value = bcrypt(random_password.argocd_admin_password.result)
-  }
+  set_sensitive = [
+    {
+      name  = "configs.secret.argocdServerAdminPassword"
+      value = bcrypt(random_password.argocd_admin_password.result)
+    }
+  ]
 
   lifecycle {
     ignore_changes = [set_sensitive]

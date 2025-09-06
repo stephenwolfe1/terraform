@@ -114,9 +114,5 @@ server:
     enabled: true
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-production
-    hosts:
-      - ${hostname}
-    tls:
-      - secretName: ${hostname}-tls
-        hosts:
-          - ${hostname}
+    hostname: ${hostname}
+    tls: true
