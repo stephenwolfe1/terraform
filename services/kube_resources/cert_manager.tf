@@ -16,6 +16,7 @@ resource "kubernetes_secret" "cert_manager" {
   }
 
   data = {
-    "api-token" = data.vault_generic_secret.cloudflare.data["api-token"]
+    //api-token = var.cloudflare_api_token
+    api-token = data.vault_generic_secret.cloudflare.data["api-token"]
   }
 }

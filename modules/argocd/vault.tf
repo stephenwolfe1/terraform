@@ -4,7 +4,7 @@ resource "vault_generic_secret" "vault_output" {
   data_json = jsonencode(
     {
       "username" = "admin",
-      "password" = "${module.argocd.admin_password}"
+      "password" = "${random_password.argocd_admin_password.result}"
     },
   )
 }

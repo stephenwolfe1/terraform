@@ -1,0 +1,69 @@
+applications:
+  - name: cluster-bootstrap
+    namespace: argocd
+    additionalLabels: {}
+    additionalAnnotations: {}
+    project: bootstrap
+    source:
+      repoURL: ${cluster_bootstrap_repo}
+      targetRevision: ${target_revision}
+      path: bootstrap
+      helm:
+        parameters:
+        - name: cluster_name
+          value: ${cluster_name}
+        - name: source.targetRevision
+          value: ${target_revision}
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    syncPolicy:
+      automated:
+        prune: false
+        selfHeal: true
+
+projects:
+  - name: bootstrap
+    namespace: argocd
+    additionalLabels: {}
+    additionalAnnotations: {}
+    description: Bootstrap project
+    sourceRepos:
+    - '*'
+    destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+    namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+    - group: ''
+      kind: NetworkPolicy
+    orphanedResources: {}
+    roles: []
+  - name: main
+    namespace: argocd
+    additionalLabels: {}
+    additionalAnnotations: {}
+    description: Applications project
+    sourceRepos:
+    - '*'
+    destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+    clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+    namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+    - group: ''
+      kind: NetworkPolicy
+    orphanedResources: {}
+    roles: []
