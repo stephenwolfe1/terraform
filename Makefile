@@ -43,7 +43,7 @@ terraformer-shell := docker run \
 .PHONY: pull
 pull: ## pull terraformer image
 	@touch $(HOME)/.vault-token
-	@echo docker pull ${IMAGE}:${TAG}
+	@docker pull ${IMAGE}:${TAG}
 
 .PHONY: init
 init: pull ## run terraformer init
